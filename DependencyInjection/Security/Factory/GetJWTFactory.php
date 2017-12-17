@@ -5,6 +5,7 @@ namespace Gfreeau\Bundle\GetJWTBundle\DependencyInjection\Security\Factory;
 use Symfony\Bundle\SecurityBundle\DependencyInjection\Security\Factory\SecurityFactoryInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\DefinitionDecorator;
+use Symfony\Component\DependencyInjection\ChildDefinition;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\Config\Definition\Builder\NodeDefinition;
 
@@ -16,8 +17,9 @@ class GetJWTFactory implements SecurityFactoryInterface
     public function create(ContainerBuilder $container, $id, $config, $userProvider, $defaultEntryPoint)
     {
         $providerId = 'security.authentication.provider.get.jwt.'.$id;
+        $definitionClassName = $this->getDefinitionClassname();
         $container
-            ->setDefinition($providerId, new DefinitionDecorator($config['authentication_provider']))
+            ->setDefinition($providerId, new $definitionClassName($config['authentication_provider']))
             ->replaceArgument(0, new Reference($userProvider))
             ->replaceArgument(1, new Reference($config['user_checker']))
             ->replaceArgument(2, $id)
@@ -25,7 +27,7 @@ class GetJWTFactory implements SecurityFactoryInterface
 
         $listenerId = 'security.authentication.listener.get.jwt.'.$id;
         $listener = $container
-            ->setDefinition($listenerId, new DefinitionDecorator('gfreeau_get_jwt.security.authentication.listener'))
+            ->setDefinition($listenerId, new $definitionClassName('gfreeau_get_jwt.security.authentication.listener'))
             ->replaceArgument(2, $id)
             ->replaceArgument(5, $config)
         ;
@@ -91,6 +93,11 @@ class GetJWTFactory implements SecurityFactoryInterface
                     ->info('The UserChecker to use when authenticating users in this firewall.')
                 ->end()
             ->end();
+    }
+    
+    private function getDefinitionClassname()
+    {
+        return class_exists(ChildDefinition::class) ? ChildDefinition::class : DefinitionDecorator::class;
     }
 
 }
