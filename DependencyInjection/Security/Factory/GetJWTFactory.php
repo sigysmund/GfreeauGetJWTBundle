@@ -3,8 +3,8 @@
 namespace Gfreeau\Bundle\GetJWTBundle\DependencyInjection\Security\Factory;
 
 use Symfony\Bundle\SecurityBundle\DependencyInjection\Security\Factory\SecurityFactoryInterface;
+use Symfony\Component\DependencyInjection\ChildDefinition;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\DefinitionDecorator;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\Config\Definition\Builder\NodeDefinition;
 
@@ -13,19 +13,19 @@ class GetJWTFactory implements SecurityFactoryInterface
     /**
      * {@inheritdoc}
      */
-    public function create(ContainerBuilder $container, $id, $config, $userProvider, $defaultEntryPoint)
+    public function create(ContainerBuilder $container, string $id, array $config, string $userProviderId, ?string $defaultEntryPointId)
     {
         $providerId = 'security.authentication.provider.get.jwt.'.$id;
         $container
-            ->setDefinition($providerId, new DefinitionDecorator($config['authentication_provider']))
-            ->replaceArgument(0, new Reference($userProvider))
+            ->setDefinition($providerId, new ChildDefinition($config['authentication_provider']))
+            ->replaceArgument(0, new Reference($userProviderId))
             ->replaceArgument(1, new Reference($config['user_checker']))
             ->replaceArgument(2, $id)
         ;
 
         $listenerId = 'security.authentication.listener.get.jwt.'.$id;
         $listener = $container
-            ->setDefinition($listenerId, new DefinitionDecorator('gfreeau_get_jwt.security.authentication.listener'))
+            ->setDefinition($listenerId, new ChildDefinition('gfreeau_get_jwt.security.authentication.listener'))
             ->replaceArgument(2, $id)
             ->replaceArgument(5, $config)
         ;
@@ -41,7 +41,7 @@ class GetJWTFactory implements SecurityFactoryInterface
             $listener->replaceArgument(4, new Reference($config['failure_handler']));
         }
 
-        return array($providerId, $listenerId, $defaultEntryPoint);
+        return array($providerId, $listenerId, $defaultEntryPointId);
     }
 
     /**
